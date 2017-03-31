@@ -1,0 +1,4 @@
+RUB
+USD
+GBP
+SGD
