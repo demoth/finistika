@@ -16,7 +16,9 @@ import java.util.Random;
 import java.util.UUID;
 
 public class Pain00100108Generator {
-    Random random;
+    public Random random;
+    public int maxInBatch;
+    public int batchMax;
     private List<String> words;
     private List<String> companies;
     private List<String> ccy;
@@ -35,9 +37,11 @@ public class Pain00100108Generator {
         today = new XMLGregorianCalendarImpl(new GregorianCalendar());
         generexBICFI = new Generex("[A-Z]{6,6}[A-Z2-9][A-NP-Z0-9]([A-Z0-9]{3,3}){0,1}");
         generexCd = new Generex("[A-Z0-9]{1,5}");
+        maxInBatch = random.nextInt(100);
+        batchMax = random.nextInt(100);
     }
 
-    public Document generate(int batchMax) {
+    public Document generate() {
         BigDecimal ctrlSum = new BigDecimal(0);
         int instrCount = 0;
         Document document = new Document();
@@ -66,7 +70,7 @@ public class Pain00100108Generator {
                             default:
                                 instruction.setPmtMtd(PaymentMethod3Code.TRF);
                         }
-                        int instrInBatch = random.nextInt(200);
+                        int instrInBatch = random.nextInt(maxInBatch) + 1;
                         if (random.nextBoolean())
                             instruction.setNbOfTxs(String.valueOf(instrInBatch));
                         {
@@ -81,7 +85,7 @@ public class Pain00100108Generator {
                             instruction.setDbtrAgtAcct(createAccount());
                         if (random.nextBoolean())
                             instruction.setChrgsAcct(createAccount());
-                        if (random.nextBoolean()) {
+                        if (random.nextBoolean())
                             switch (random.nextInt(4)) {
                                 case 0:
                                     instruction.setChrgBr(ChargeBearerType1Code.CRED);
@@ -96,13 +100,14 @@ public class Pain00100108Generator {
                                     instruction.setChrgBr(ChargeBearerType1Code.SLEV);
                                     break;
                             }
-                        }
+                        BigDecimal instrnCtrlSum = new BigDecimal(0);
                         for (int i = 0; i < instrInBatch; i++) {
                             CreditTransferTransaction26 transfer = new CreditTransferTransaction26();
                             {
                                 AmountType4Choice value = new AmountType4Choice();
                                 ActiveOrHistoricCurrencyAndAmount amt = new ActiveOrHistoricCurrencyAndAmount();
                                 amt.setValue(new BigDecimal(Math.max(10, random.nextInt())));
+                                instrnCtrlSum = instrnCtrlSum.add(amt.getValue());
                                 amt.setCcy(getWord(ccy));
                                 ctrlSum = ctrlSum.add(amt.getValue());
                                 if (random.nextBoolean()) {
@@ -125,6 +130,8 @@ public class Pain00100108Generator {
                             transfer.setCdtr(createParty());
                             transfer.setCdtrAcct(createAccount());
                             transfer.setCdtrAgt(crateAgent());
+                            if (random.nextBoolean())
+                                instruction.setCtrlSum(instrnCtrlSum);
                             instruction.getCdtTrfTxInf().add(transfer);
                             instrCount++;
                         }
