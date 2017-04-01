@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Main {
 
-    private static int sleep = 1;
+    private static int sleep = 0;
 
     public static void main(String[] args) throws IOException, SAXException, JAXBException {
         final AtomicLong instructionsTotal = new AtomicLong();
@@ -46,15 +46,17 @@ public class Main {
             public void run() {
                 Thread.currentThread().setName("Generator thread");
                 while (true) {
+                    if (generated.size() > 1000) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            System.out.println("Generator thread exiting");
+                        }
+                    }
                     Document pain = generator.generate();
                     instructionsTotal.addAndGet(Long.parseLong(pain.getCstmrCdtTrfInitn().getGrpHdr().getNbOfTxs()));
                     generated.add(pain);
                     generatedTotal.incrementAndGet();
-                    try {
-                        Thread.sleep(sleep);
-                    } catch (InterruptedException e) {
-                        System.out.println("Generator thread exiting");
-                    }
                 }
             }
         });
@@ -66,17 +68,26 @@ public class Main {
             public void run() {
                 Thread.currentThread().setName("Marshaller thread");
                 while (true) {
+                    if (marshalled.size() > 1000) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            System.out.println("Marshaller thread exiting");
+                            break;
+                        }
+                    }
+                    Document poll = null;
                     try {
-                        Document poll = generated.poll();
+                        poll = generated.poll();
                         if (poll != null) {
                             StringWriter xml = new StringWriter();
                             marshaller.marshal(poll, xml);
                             marshalled.add(xml.toString());
                             marshalledTotal.incrementAndGet();
                         }
-                        Thread.sleep(sleep);
                     } catch (Exception e) {
-                        System.out.println("Marshaller thread exiting");
+                        if (poll != null)
+                            System.out.println("Could not marshall document:" + poll.getCstmrCdtTrfInitn().getGrpHdr().getMsgId());
                     }
 
                 }
@@ -107,24 +118,21 @@ public class Main {
                 }
             }
         });
-        Thread infoThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Thread.currentThread().setName("Info thread");
-                while (true) {
-                    try {
-                        System.out.println();
-                        System.out.println("Time passed:" + (new Date().getTime() - startTime) / 60000.0 + " min");
-                        System.out.println("Generated queue size:" + generated.size());
-                        System.out.println("Marshalled queue size:" + marshalled.size());
-                        System.out.println("generatedTotal = " + generatedTotal.get());
-                        System.out.println("marshalledTotal = " + marshalledTotal.get());
-                        System.out.println("validatedTotal = " + validatedTotal.get());
-                        System.out.println("instructionsTota = " + instructionsTotal.get());
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        System.out.println("Info thread exiting");
-                    }
+        Thread infoThread = new Thread(() -> {
+            Thread.currentThread().setName("Info thread");
+            while (true) {
+                try {
+                    System.out.println();
+                    System.out.println("Time passed:" + (new Date().getTime() - startTime) / 60000.0 + " min");
+                    System.out.println("Generated queue size:" + generated.size());
+                    System.out.println("Marshalled queue size:" + marshalled.size());
+                    System.out.println("generatedTotal = " + generatedTotal.get());
+                    System.out.println("marshalledTotal = " + marshalledTotal.get());
+                    System.out.println("validatedTotal = " + validatedTotal.get());
+                    System.out.println("instructionsTota = " + instructionsTotal.get());
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    System.out.println("Info thread exiting");
                 }
             }
         });
