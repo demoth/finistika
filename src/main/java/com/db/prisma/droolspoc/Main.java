@@ -18,11 +18,11 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Date;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Main {
-
-    private static int sleep = 0;
 
     public static void main(String[] args) throws IOException, SAXException, JAXBException {
         final AtomicLong instructionsTotal = new AtomicLong();
@@ -34,13 +34,19 @@ public class Main {
         final ConcurrentLinkedQueue<Document> generated = new ConcurrentLinkedQueue<>();
         final ConcurrentLinkedQueue<String> marshalled = new ConcurrentLinkedQueue<>();
         Thread generatorThread = new Thread(createGeneratorTask(instructionsTotal, generatedTotal, generated));
-        Thread marshallerThread = new Thread(createMarshallingTask(marshalledTotal, generated, marshalled));
-        Thread validatorThread = new Thread(createValidationTask(validatedTotal, marshalled));
         Thread infoThread = new Thread(createInfoTask(instructionsTotal, generatedTotal, marshalledTotal, validatedTotal, startTime, generated, marshalled));
 
+        ExecutorService marshallService = Executors.newFixedThreadPool(4);
+        marshallService.submit(createMarshallingTask(marshalledTotal, generated, marshalled));
+        marshallService.submit(createMarshallingTask(marshalledTotal, generated, marshalled));
+
+        ExecutorService validationService = Executors.newFixedThreadPool(4);
+        validationService.submit(createValidationTask(validatedTotal, marshalled));
+        validationService.submit(createValidationTask(validatedTotal, marshalled));
+        validationService.submit(createValidationTask(validatedTotal, marshalled));
+        validationService.submit(createValidationTask(validatedTotal, marshalled));
+
         generatorThread.start();
-        marshallerThread.start();
-        validatorThread.start();
         infoThread.start();
     }
 
@@ -57,7 +63,7 @@ public class Main {
                     System.out.println("marshalledTotal = " + marshalledTotal.get());
                     System.out.println("validatedTotal = " + validatedTotal.get());
                     System.out.println("instructionsTotal = " + instructionsTotal.get());
-                    Thread.sleep(5000);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     System.out.println("Info thread exiting");
                     break;
@@ -84,7 +90,6 @@ public class Main {
                             validator.validate(new StreamSource(new StringReader(poll)));
                             validatedTotal.incrementAndGet();
                         }
-                        Thread.sleep(sleep);
                     } catch (Exception e) {
                         System.out.println("Validator thread exiting");
                         break;
@@ -104,7 +109,7 @@ public class Main {
             public void run() {
                 Thread.currentThread().setName("Marshaller thread");
                 while (true) {
-                    if (marshalled.size() > 1000) {
+                    if (marshalled.size() > 50000) {
                         try {
                             Thread.sleep(100);
                         } catch (InterruptedException e) {
@@ -145,7 +150,7 @@ public class Main {
             public void run() {
                 Thread.currentThread().setName("Generator thread");
                 while (true) {
-                    if (generated.size() > 1000) {
+                    if (generated.size() > 50000) {
                         try {
                             Thread.sleep(100);
                         } catch (InterruptedException e) {
