@@ -21,6 +21,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Main {
+
+    private static int sleep = 1;
+
     public static void main(String[] args) throws IOException, SAXException, JAXBException {
         final AtomicLong instructionsTotal = new AtomicLong();
         final AtomicLong generatedTotal = new AtomicLong();
@@ -48,7 +51,7 @@ public class Main {
                     generated.add(pain);
                     generatedTotal.incrementAndGet();
                     try {
-                        Thread.sleep(50);
+                        Thread.sleep(sleep);
                     } catch (InterruptedException e) {
                         System.out.println("Generator thread exiting");
                     }
@@ -71,7 +74,7 @@ public class Main {
                             marshalled.add(xml.toString());
                             marshalledTotal.incrementAndGet();
                         }
-                        Thread.sleep(50);
+                        Thread.sleep(sleep);
                     } catch (Exception e) {
                         System.out.println("Marshaller thread exiting");
                     }
@@ -96,7 +99,7 @@ public class Main {
                             validator.validate(new StreamSource(new StringReader(poll)));
                             validatedTotal.incrementAndGet();
                         }
-                        Thread.sleep(50);
+                        Thread.sleep(sleep);
                     } catch (Exception e) {
                         System.out.println("Validator thread exiting");
                     }
