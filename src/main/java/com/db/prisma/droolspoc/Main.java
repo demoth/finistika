@@ -33,34 +33,70 @@ public class Main {
 
         final ConcurrentLinkedQueue<Document> generated = new ConcurrentLinkedQueue<>();
         final ConcurrentLinkedQueue<String> marshalled = new ConcurrentLinkedQueue<>();
-        Thread generatorThread = new Thread(new Runnable() {
-            Pain00100108Generator generator;
+        Thread generatorThread = new Thread(createGeneratorTask(instructionsTotal, generatedTotal, generated));
+        Thread marshallerThread = new Thread(createMarshallingTask(marshalledTotal, generated, marshalled));
+        Thread validatorThread = new Thread(createValidationTask(validatedTotal, marshalled));
+        Thread infoThread = new Thread(createInfoTask(instructionsTotal, generatedTotal, marshalledTotal, validatedTotal, startTime, generated, marshalled));
 
-            {
-                generator = new Pain00100108Generator();
-                generator.maxInBatch = 5;
-                generator.batchMax = 5;
+        generatorThread.start();
+        marshallerThread.start();
+        validatorThread.start();
+        infoThread.start();
+    }
+
+    private static Runnable createInfoTask(AtomicLong instructionsTotal, AtomicLong generatedTotal, AtomicLong marshalledTotal, AtomicLong validatedTotal, long startTime, ConcurrentLinkedQueue<Document> generated, ConcurrentLinkedQueue<String> marshalled) {
+        return () -> {
+            Thread.currentThread().setName("Info thread");
+            while (true) {
+                try {
+                    System.out.println();
+                    System.out.println("Time passed:" + (new Date().getTime() - startTime) / 60000.0 + " min");
+                    System.out.println("Generated queue size:" + generated.size());
+                    System.out.println("Marshalled queue size:" + marshalled.size());
+                    System.out.println("generatedTotal = " + generatedTotal.get());
+                    System.out.println("marshalledTotal = " + marshalledTotal.get());
+                    System.out.println("validatedTotal = " + validatedTotal.get());
+                    System.out.println("instructionsTotal = " + instructionsTotal.get());
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    System.out.println("Info thread exiting");
+                    break;
+                }
             }
+        };
+    }
+
+    private static Runnable createValidationTask(AtomicLong validatedTotal, ConcurrentLinkedQueue<String> marshalled) throws SAXException {
+        return new Runnable() {
+            Schema schema = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+                    .newSchema(new StreamSource(new File("xsd/pain.001.001.08.xsd")));
+
+            Validator validator = schema.newValidator();
+
 
             @Override
             public void run() {
-                Thread.currentThread().setName("Generator thread");
+                Thread.currentThread().setName("Validator thread");
                 while (true) {
-                    if (generated.size() > 1000) {
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            System.out.println("Generator thread exiting");
+                    try {
+                        String poll = marshalled.poll();
+                        if (poll != null) {
+                            validator.validate(new StreamSource(new StringReader(poll)));
+                            validatedTotal.incrementAndGet();
                         }
+                        Thread.sleep(sleep);
+                    } catch (Exception e) {
+                        System.out.println("Validator thread exiting");
+                        break;
                     }
-                    Document pain = generator.generate();
-                    instructionsTotal.addAndGet(Long.parseLong(pain.getCstmrCdtTrfInitn().getGrpHdr().getNbOfTxs()));
-                    generated.add(pain);
-                    generatedTotal.incrementAndGet();
+
                 }
             }
-        });
-        Thread marshallerThread = new Thread(new Runnable() {
+        };
+    }
+
+    private static Runnable createMarshallingTask(AtomicLong marshalledTotal, ConcurrentLinkedQueue<Document> generated, ConcurrentLinkedQueue<String> marshalled) throws JAXBException {
+        return new Runnable() {
             JAXBContext jc = JAXBContext.newInstance("com.db.prisma.droolspoc.pain001");
             Marshaller marshaller = jc.createMarshaller();
 
@@ -92,54 +128,37 @@ public class Main {
 
                 }
             }
-        });
-        Thread validatorThread = new Thread(new Runnable() {
-            Schema schema = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-                    .newSchema(new StreamSource(new File("xsd/pain.001.001.08.xsd")));
+        };
+    }
 
-            Validator validator = schema.newValidator();
+    private static Runnable createGeneratorTask(AtomicLong instructionsTotal, AtomicLong generatedTotal, ConcurrentLinkedQueue<Document> generated) throws IOException {
+        return new Runnable() {
+            Pain00100108Generator generator;
 
+            {
+                generator = new Pain00100108Generator();
+                generator.maxInBatch = 5;
+                generator.batchMax = 5;
+            }
 
             @Override
             public void run() {
-                Thread.currentThread().setName("Validator thread");
+                Thread.currentThread().setName("Generator thread");
                 while (true) {
-                    try {
-                        String poll = marshalled.poll();
-                        if (poll != null) {
-                            validator.validate(new StreamSource(new StringReader(poll)));
-                            validatedTotal.incrementAndGet();
+                    if (generated.size() > 1000) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            System.out.println("Generator thread exiting");
+                            break;
                         }
-                        Thread.sleep(sleep);
-                    } catch (Exception e) {
-                        System.out.println("Validator thread exiting");
                     }
-
+                    Document pain = generator.generate();
+                    instructionsTotal.addAndGet(Long.parseLong(pain.getCstmrCdtTrfInitn().getGrpHdr().getNbOfTxs()));
+                    generated.add(pain);
+                    generatedTotal.incrementAndGet();
                 }
             }
-        });
-        Thread infoThread = new Thread(() -> {
-            Thread.currentThread().setName("Info thread");
-            while (true) {
-                try {
-                    System.out.println();
-                    System.out.println("Time passed:" + (new Date().getTime() - startTime) / 60000.0 + " min");
-                    System.out.println("Generated queue size:" + generated.size());
-                    System.out.println("Marshalled queue size:" + marshalled.size());
-                    System.out.println("generatedTotal = " + generatedTotal.get());
-                    System.out.println("marshalledTotal = " + marshalledTotal.get());
-                    System.out.println("validatedTotal = " + validatedTotal.get());
-                    System.out.println("instructionsTota = " + instructionsTotal.get());
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    System.out.println("Info thread exiting");
-                }
-            }
-        });
-
-        generatorThread.start();
-        marshallerThread.start();
-        validatorThread.start();
-        infoThread.start();
+        };
     }
 }
