@@ -3,7 +3,6 @@ package com.db.prisma.droolspoc.generation;
 import com.db.prisma.droolspoc.pain001.*;
 import com.mifmif.common.regex.Generex;
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.iban4j.Iban;
 
 import java.io.IOException;
@@ -16,6 +15,8 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
+
+import static com.db.prisma.droolspoc.Utils.getRandomAlphanum;
 
 public class Pain00100108Generator {
     public Random random;
@@ -164,7 +165,7 @@ public class Pain00100108Generator {
             ClearingSystemMemberIdentification2 clrSysMmbId = new ClearingSystemMemberIdentification2();
             clrSysMmbId.setMmbId(getWord(words));
             ClearingSystemIdentification2Choice clrSysId = new ClearingSystemIdentification2Choice();
-            clrSysId.setCd(RandomStringUtils.randomAlphanumeric(4));
+            clrSysId.setCd(getRandomAlphanum(4));
             clrSysMmbId.setClrSysId(clrSysId);
             finInstnId.setClrSysMmbId(clrSysMmbId);
         }
@@ -192,7 +193,7 @@ public class Pain00100108Generator {
     }
 
     private String getId() {
-        return RandomStringUtils.randomAlphanumeric(35);
+        return getRandomAlphanum(35);
     }
 
     private PartyIdentification43 createParty() {

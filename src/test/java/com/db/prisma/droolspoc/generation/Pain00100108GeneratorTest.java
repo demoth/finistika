@@ -48,29 +48,6 @@ class Pain00100108GeneratorTest {
         System.out.println("Validate - ok!");
     }
 
-    void generateAll() throws IOException, org.xml.sax.SAXException, JAXBException {
-        generator.batchMax = 10;
-        generator.maxInBatch = 10;
-        while (true) {
-            StringWriter xml = null;
-            try {
-                Document result = generator.generate();
-                System.out.println("Generation - ok!");
-                xml = new StringWriter();
-                JAXBContext jc = JAXBContext.newInstance("com.db.prisma.droolspoc.pain001");
-                Marshaller marshaller = jc.createMarshaller();
-                marshaller.marshal(result, xml);
-                System.out.println("Marshall - ok!");
-                System.out.println(xml);
-                validate(new StreamSource(new StringReader(xml.toString())));
-                System.out.println("Validate - ok!");
-            } catch (JAXBException | IOException | SAXException e) {
-                System.out.println("Failed to process pain:\n" + xml);
-                e.printStackTrace();
-            }
-        }
-    }
-
     private void validate(Source source) throws IOException, SAXException {
         Validator validator = schema.newValidator();
         validator.validate(source);
