@@ -3,6 +3,7 @@ package com.db.prisma.droolspoc.generation;
 import com.db.prisma.droolspoc.pain001.*;
 import com.mifmif.common.regex.Generex;
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.iban4j.Iban;
 
 import java.io.IOException;
@@ -10,21 +11,23 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
+import java.util.stream.IntStream;
 
 public class Pain00100108Generator {
     public Random random;
+    public int pregeneratedSize = 5000;
     public int maxInBatch;
     public int batchMax;
     private List<String> words;
     private List<String> companies;
     private List<String> ccy;
     private List<String> countries;
-    private Generex generexBICFI;
-    private Generex generexCd;
+    private List<String> bic;
+    private List<String> iban;
     private XMLGregorianCalendarImpl today;
 
 
@@ -35,8 +38,13 @@ public class Pain00100108Generator {
         ccy = Files.readAllLines(Paths.get("samples", "ccy.txt"));
         countries = Files.readAllLines(Paths.get("samples", "coutries.txt"));
         today = new XMLGregorianCalendarImpl(new GregorianCalendar());
-        generexBICFI = new Generex("[A-Z]{6,6}[A-Z2-9][A-NP-Z0-9]([A-Z0-9]{3,3}){0,1}");
-        generexCd = new Generex("[A-Z0-9]{1,5}");
+        bic = new ArrayList<>(pregeneratedSize);
+        iban = new ArrayList<>(pregeneratedSize);
+        Generex generexBICFI = new Generex("[A-Z]{6,6}[A-Z2-9][A-NP-Z0-9]([A-Z0-9]{3,3}){0,1}");
+        IntStream.range(0, pregeneratedSize).forEach(value -> {
+            bic.add(generexBICFI.random());
+            iban.add(Iban.random().toString());
+        });
         maxInBatch = random.nextInt(100);
         batchMax = random.nextInt(100);
     }
@@ -150,13 +158,13 @@ public class Pain00100108Generator {
         BranchAndFinancialInstitutionIdentification5 dbtrAgt = new BranchAndFinancialInstitutionIdentification5();
         FinancialInstitutionIdentification8 finInstnId = new FinancialInstitutionIdentification8();
         if (random.nextBoolean()) {
-            finInstnId.setBICFI(generexBICFI.random());
+            finInstnId.setBICFI(getWord(bic));
         }
         if (random.nextBoolean()) {
             ClearingSystemMemberIdentification2 clrSysMmbId = new ClearingSystemMemberIdentification2();
             clrSysMmbId.setMmbId(getWord(words));
             ClearingSystemIdentification2Choice clrSysId = new ClearingSystemIdentification2Choice();
-            clrSysId.setCd(generexCd.random());
+            clrSysId.setCd(RandomStringUtils.randomAlphanumeric(4));
             clrSysMmbId.setClrSysId(clrSysId);
             finInstnId.setClrSysMmbId(clrSysMmbId);
         }
@@ -178,33 +186,33 @@ public class Pain00100108Generator {
             dbtrAcct.setTp(tp);
         }
         AccountIdentification4Choice id = new AccountIdentification4Choice();
-        id.setIBAN(Iban.random().toString());
+        id.setIBAN(getWord(iban));
         dbtrAcct.setId(id);
         return dbtrAcct;
     }
 
     private String getId() {
-        return UUID.randomUUID().toString().substring(0, 35);
+        return RandomStringUtils.randomAlphanumeric(35);
     }
 
     private PartyIdentification43 createParty() {
-        PartyIdentification43 initgPty = new PartyIdentification43();
+        PartyIdentification43 party = new PartyIdentification43();
         {
             if (random.nextFloat() > 0.05f)
-                initgPty.setNm(getTitle());
+                party.setNm(getTitle());
             if (random.nextFloat() > 0.05f)
-                initgPty.setCtryOfRes(getWord(countries));
+                party.setCtryOfRes(getWord(countries));
             Party11Choice id = new Party11Choice();
             OrganisationIdentification8 orgId = new OrganisationIdentification8();
             if (random.nextFloat() > 0.05f)
-                orgId.setAnyBIC(generexBICFI.random());
+                orgId.setAnyBIC(getWord(bic));
             GenericOrganisationIdentification1 genericOrganisationIdentification1 = new GenericOrganisationIdentification1();
             genericOrganisationIdentification1.setId(getId());
             orgId.getOthr().add(genericOrganisationIdentification1);
             id.setOrgId(orgId);
-            initgPty.setId(id);
+            party.setId(id);
         }
-        return initgPty;
+        return party;
     }
 
     private String getTitle() {
