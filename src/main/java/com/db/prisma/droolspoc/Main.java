@@ -90,8 +90,11 @@ public class Main {
                             validator.validate(new StreamSource(new StringReader(poll)));
                             validatedTotal.incrementAndGet();
                         }
+                    } catch (SAXException e) {
+                        // nothing to do...
                     } catch (Exception e) {
-                        System.out.println("Validator thread exiting");
+                        e.printStackTrace();
+                        System.out.println("Validator thread exiting:");
                         break;
                     }
 

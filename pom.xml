@@ -14,19 +14,14 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>org.drools</groupId>
-            <artifactId>drools-decisiontables</artifactId>
-            <version>6.5.0.Final</version>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>RELEASE</version>
         </dependency>
         <dependency>
-            <groupId>org.iban4j</groupId>
+            <groupId>com.github.arturmkrtchyan</groupId>
             <artifactId>iban4j</artifactId>
-            <version>3.2.2-SNAPSHOT</version>
+            <version>iban4j-3.2.1</version>
         </dependency>
         <dependency>
             <groupId>com.github.mifmif</groupId>
@@ -48,5 +43,20 @@
             <artifactId>jmh-generator-annprocess</artifactId>
             <version>1.18</version>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.16.16</version>
+        </dependency>
     </dependencies>
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>http://central.maven.org/maven2/</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 </project>

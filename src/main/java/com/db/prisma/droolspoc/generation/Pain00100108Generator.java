@@ -19,6 +19,7 @@ import java.util.stream.IntStream;
 import static com.db.prisma.droolspoc.Utils.getRandomAlphanum;
 
 public class Pain00100108Generator {
+    private final float SMALL_CHANCE = 0.05f;
     public Random random;
     public int pregeneratedSize = 5000;
     public int maxInBatch;
@@ -187,7 +188,13 @@ public class Pain00100108Generator {
             dbtrAcct.setTp(tp);
         }
         AccountIdentification4Choice id = new AccountIdentification4Choice();
-        id.setIBAN(getWord(iban));
+        if (random.nextBoolean())
+            id.setIBAN(getWord(iban));
+        else {
+            GenericAccountIdentification1 othr = new GenericAccountIdentification1();
+            othr.setId(getRandomAlphanum(34));
+            id.setOthr(othr);
+        }
         dbtrAcct.setId(id);
         return dbtrAcct;
     }
@@ -199,13 +206,13 @@ public class Pain00100108Generator {
     private PartyIdentification43 createParty() {
         PartyIdentification43 party = new PartyIdentification43();
         {
-            if (random.nextFloat() > 0.05f)
+            if (random.nextFloat() > SMALL_CHANCE)
                 party.setNm(getTitle());
-            if (random.nextFloat() > 0.05f)
+            if (random.nextFloat() > SMALL_CHANCE)
                 party.setCtryOfRes(getWord(countries));
             Party11Choice id = new Party11Choice();
             OrganisationIdentification8 orgId = new OrganisationIdentification8();
-            if (random.nextFloat() > 0.05f)
+            if (random.nextFloat() > SMALL_CHANCE)
                 orgId.setAnyBIC(getWord(bic));
             GenericOrganisationIdentification1 genericOrganisationIdentification1 = new GenericOrganisationIdentification1();
             genericOrganisationIdentification1.setId(getId());
